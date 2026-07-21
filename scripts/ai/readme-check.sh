@@ -15,7 +15,7 @@ required=(
 )
 
 for text in "${required[@]}"; do
-    rg -Fq "$text" "$AI_DIR/README.md" || die "README is missing required reference: $text"
+    grep -Fq -- "$text" "$AI_DIR/README.md" || die "README is missing required reference: $text"
 done
 
 note 'README references are synchronized'

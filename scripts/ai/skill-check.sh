@@ -13,8 +13,8 @@ for skill in "${required[@]}"; do
     path="$AI_DIR/.agents/skills/$skill/SKILL.md"
     [[ -s "$path" ]] || die "required skill is missing: $skill"
     [[ "$(awk 'NR == 1 { print; exit }' "$path")" == '---' ]] || die "skill frontmatter is missing: $skill"
-    rg -q '^name:[[:space:]]+' "$path" || die "skill name is missing: $skill"
-    rg -q '^description:[[:space:]]+' "$path" || die "skill description is missing: $skill"
+    grep -Eq '^name:[[:space:]]+' "$path" || die "skill name is missing: $skill"
+    grep -Eq '^description:[[:space:]]+' "$path" || die "skill description is missing: $skill"
 done
 
 note 'canonical skills are valid'
