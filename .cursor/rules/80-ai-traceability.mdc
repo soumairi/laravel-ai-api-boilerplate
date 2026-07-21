@@ -1,0 +1,7 @@
+---
+description: Sanitized AI context, canonical traces, and truthful validation.
+globs: ["ai/**", "scripts/ai/**", ".agents/skills/**"]
+alwaysApply: false
+---
+
+Use canonical `AI-YYYYMMDD-HHMMSS-XXXXXXXX` trace IDs, dated public trace paths, and append-only sanitized history. Record only checks actually run and keep approvals explicit.

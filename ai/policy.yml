@@ -1,0 +1,17 @@
+version: 1
+trace_id_format: '^AI-[0-9]{8}-[0-9]{6}-[0-9a-f]{8}$'
+protected_branches:
+  - main
+  - master
+  - develop
+  - production
+  - release/*
+allowed_remotes:
+  - origin
+allowed_remote_hosts:
+  - github.com
+  - gitlab.com
+approvals:
+  - commit
+  - push
+  - pr

@@ -1,0 +1,7 @@
+version: 1
+mappings:
+  - canonical: AI-20260721-111333-E453EF8E
+    legacy: 20260721T111333Z-e453ef8e
+    file: ai/traces/2026/07/AI-20260721-111333-E453EF8E.md
+    branch_prefix: ai/AI-20260721-111333-E453EF8E/
+    reason: Legacy bootstrap trace retained only as a redirect after the canonical branch rename.

@@ -1,0 +1,7 @@
+---
+description: Versioned API validation, resources, and response conventions.
+globs: ["app/Http/**/*.php", "routes/api.php"]
+alwaysApply: false
+---
+
+Use strict Form Requests, explicit Resources, `/api/v1` routes, stable success envelopes, request IDs, and RFC 9457 errors. Reject unsupported media types, oversized bodies, and unallowlisted query parameters.

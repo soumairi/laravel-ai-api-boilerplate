@@ -1,0 +1,6 @@
+---
+description: Core repository architecture, safety, and contribution rules.
+alwaysApply: true
+---
+
+Follow `AGENTS.md`, use `ai/context-map.yml`, keep changes scoped, and never expose secrets. Preserve the HTTP → Application → Domain dependency direction and append truthful results to the active trace.

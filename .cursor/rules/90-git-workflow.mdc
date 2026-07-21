@@ -1,0 +1,7 @@
+---
+description: Approval-gated safe Git and pull-request delivery.
+globs: [".github/**", "scripts/ai/safe-*.sh", "scripts/ai/*pr*.sh", "docs/conventions/git.md"]
+alwaysApply: false
+---
+
+Use the safe Git scripts only after explicit approvals. Never force-push or push protected branches; commit, push, and Pull Request operations must pass trace, security, and validation gates.

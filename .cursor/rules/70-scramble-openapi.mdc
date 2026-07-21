@@ -1,0 +1,7 @@
+---
+description: Scramble generation and versioned OpenAPI synchronization.
+globs: ["app/Infrastructure/OpenApi/**/*.php", "config/scramble.php", "docs/openapi/**", "routes/api.php"]
+alwaysApply: false
+---
+
+Keep Scramble output synchronized with every API route, request, resource, bearer-security requirement, and Query Builder allowlist. Production API docs require `api.documentation.view`.

@@ -1,0 +1,7 @@
+---
+description: Pest suites, PostgreSQL/Redis integration, and quality gates.
+globs: ["tests/**/*.php", "phpunit.xml", "phpstan.neon", "pint.json"]
+alwaysApply: false
+---
+
+Add deterministic regression tests in the correct suite. Use real PostgreSQL and Redis where behavior depends on them, keep tests parallel-safe, and never weaken security assertions or the 85% coverage gate.

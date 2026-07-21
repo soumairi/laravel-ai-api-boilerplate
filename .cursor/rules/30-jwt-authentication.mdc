@@ -1,0 +1,7 @@
+---
+description: RS256 access-token and opaque refresh-token invariants.
+globs: ["app/**/*Auth*.php", "app/**/Token*.php", "config/jwt.php", "tests/**/*Auth*.php"]
+alwaysApply: false
+---
+
+Issue short-lived RS256 access tokens with validated issuer, audience, status, and token version. Persist only opaque refresh-token hashes; preserve atomic rotation, replay detection, family revocation, Redis locking, and revoke-all behavior.

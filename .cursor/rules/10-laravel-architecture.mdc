@@ -1,0 +1,7 @@
+---
+description: Laravel modular-monolith boundaries and dependency direction.
+globs: ["app/**/*.php"]
+alwaysApply: false
+---
+
+Keep business rules in Domain, orchestration and DTOs in Application, adapters in Infrastructure, and transport concerns in Http. Controllers must remain final, versioned, and thin.

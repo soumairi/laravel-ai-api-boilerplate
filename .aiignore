@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+vendor/
+storage/
+bootstrap/cache/
+public/build/
+node_modules/
+coverage/
+*.log
+*.key
+*.pem
+*.p12
+*.pfx
+auth.json
+ai/private-traces/

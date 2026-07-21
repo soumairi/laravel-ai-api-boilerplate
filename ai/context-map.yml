@@ -1,0 +1,68 @@
+version: 1
+profiles:
+  governance:
+    - AGENTS.md
+    - CLAUDE.md
+    - PLANS.md
+    - ai/**
+    - scripts/ai/**
+    - .agents/skills/**
+    - .cursor/rules/**
+  application:
+    - AGENTS.md
+    - app/AGENTS.md
+    - app/**
+    - routes/**
+    - config/api.php
+    - config/auth.php
+    - config/rbac.php
+  database:
+    - AGENTS.md
+    - database/AGENTS.md
+    - database/**
+    - app/Models/**
+  tests:
+    - AGENTS.md
+    - tests/AGENTS.md
+    - tests/**
+    - phpunit.xml
+  authentication:
+    - AGENTS.md
+    - app/AGENTS.md
+    - docs/authentication.md
+    - docs/security.md
+    - app/Application/Auth/**
+    - app/Domain/Auth/**
+    - app/Infrastructure/Authentication/**
+    - app/Http/Controllers/Api/V1/AuthController.php
+    - tests/**/*Auth*.php
+    - tests/Integration/RefreshTokenTest.php
+  create_endpoint:
+    - AGENTS.md
+    - app/AGENTS.md
+    - docs/create-api-endpoint.md
+    - routes/api.php
+    - app/Http/Requests/**
+    - app/Http/Resources/**
+    - tests/Helpers/ApiAssertions.php
+  documentation:
+    - AGENTS.md
+    - docs/openapi-and-scramble.md
+    - routes/api.php
+    - app/Http/Requests/**
+    - app/Http/Resources/**
+    - app/Infrastructure/OpenApi/**
+    - tests/Integration/OpenApiTest.php
+exclusions:
+  - .env
+  - .env.*
+  - vendor/**
+  - storage/**
+  - bootstrap/cache/**
+  - '*.log'
+  - '**/*.key'
+  - '**/*.pem'
+  - '**/*.p12'
+  - '**/*.pfx'
+  - ai/private-traces/**
+  - coverage/**

@@ -1,0 +1,7 @@
+---
+description: PostgreSQL migrations, ULIDs, transactions, and seeders.
+globs: ["database/**/*.php", "app/Models/**/*.php"]
+alwaysApply: false
+---
+
+Target PostgreSQL, use ULIDs and explicit constraints/indexes, and keep migrations reversible. Seed reference data idempotently; destructive database commands require `APP_ENV=testing`.

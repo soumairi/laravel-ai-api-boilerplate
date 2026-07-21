@@ -1,0 +1,7 @@
+---
+description: Application security, authorization, and secret-handling rules.
+globs: ["app/**/*.php", "config/**/*.php", "routes/**/*.php"]
+alwaysApply: false
+---
+
+Enforce Policies and granular permissions, BOLA protection, last-super-admin safeguards, strict throttles, and sanitized audit logs. Never log or commit credentials, tokens, keys, environment values, or personal data.

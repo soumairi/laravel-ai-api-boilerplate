@@ -1,0 +1,14 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+.phpunit.cache
+.pest.cache
+ai
+node_modules
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/logs/*
+vendor

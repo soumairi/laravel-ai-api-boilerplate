@@ -1,0 +1,205 @@
+name: laravel-api
+
+x-app: &app
+  build:
+    context: .
+    target: ${BUILD_TARGET:-development}
+    args:
+      APP_UID: ${APP_UID:-1000}
+      APP_GID: ${APP_GID:-1000}
+  image: laravel-api:${BUILD_TARGET:-development}
+  environment: &app-environment
+    APP_ENV: ${APP_ENV:-local}
+    APP_DEBUG: ${APP_DEBUG:-false}
+    APP_URL: ${APP_URL:-http://localhost:8080}
+    LOG_CHANNEL: ${LOG_CHANNEL:-json}
+    LOG_LEVEL: ${LOG_LEVEL:-debug}
+    DB_CONNECTION: pgsql
+    DB_HOST: postgres
+    DB_PORT: 5432
+    DB_DATABASE: ${DB_DATABASE:-laravel}
+    DB_USERNAME: ${DB_USERNAME:-laravel}
+    DB_PASSWORD: ${DB_PASSWORD:-laravel}
+    REDIS_CLIENT: phpredis
+    REDIS_HOST: redis
+    REDIS_PASSWORD: ${REDIS_PASSWORD:-null}
+    REDIS_PORT: 6379
+    CACHE_STORE: ${CACHE_STORE:-redis}
+    QUEUE_CONNECTION: ${QUEUE_CONNECTION:-redis}
+    SESSION_DRIVER: ${SESSION_DRIVER:-redis}
+    MAIL_MAILER: smtp
+    MAIL_HOST: mailpit
+    MAIL_PORT: 1025
+    JWT_ALGO: ${JWT_ALGO:-RS256}
+    JWT_ISSUER: ${JWT_ISSUER:-http://localhost:8080}
+    JWT_AUDIENCE: ${JWT_AUDIENCE:-laravel-api}
+    JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-file://storage/keys/jwt-public.pem}
+    JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:-file://storage/keys/jwt-private.pem}
+    JWT_PASSPHRASE: ${JWT_PASSPHRASE:-}
+    JWT_TTL: ${JWT_TTL:-15}
+    API_RATE_LIMIT_AUTH_PER_MINUTE: ${API_RATE_LIMIT_AUTH_PER_MINUTE:-10}
+    API_RATE_LIMIT_LOGIN_IDENTITY_PER_MINUTE: ${API_RATE_LIMIT_LOGIN_IDENTITY_PER_MINUTE:-5}
+    API_RATE_LIMIT_REGISTER_PER_MINUTE: ${API_RATE_LIMIT_REGISTER_PER_MINUTE:-3}
+    API_RATE_LIMIT_FORGOT_PASSWORD_ATTEMPTS: ${API_RATE_LIMIT_FORGOT_PASSWORD_ATTEMPTS:-3}
+    API_RATE_LIMIT_FORGOT_PASSWORD_DECAY_MINUTES: ${API_RATE_LIMIT_FORGOT_PASSWORD_DECAY_MINUTES:-15}
+    API_RATE_LIMIT_REFRESH_PER_MINUTE: ${API_RATE_LIMIT_REFRESH_PER_MINUTE:-10}
+    API_RATE_LIMIT_PUBLIC_PER_MINUTE: ${API_RATE_LIMIT_PUBLIC_PER_MINUTE:-60}
+    API_RATE_LIMIT_AUTHENTICATED_PER_MINUTE: ${API_RATE_LIMIT_AUTHENTICATED_PER_MINUTE:-120}
+    API_RATE_LIMIT_ADMINISTRATION_PER_MINUTE: ${API_RATE_LIMIT_ADMINISTRATION_PER_MINUTE:-60}
+    ADMIN_NAME: ${ADMIN_NAME:-Administrator}
+    ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+    ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+  init: true
+  restart: unless-stopped
+  networks:
+    - backend
+  volumes:
+    - .:/var/www/html
+    - composer-cache:/tmp/composer
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  app:
+    <<: *app
+    healthcheck:
+      test: ["CMD-SHELL", "SCRIPT_NAME=/fpm-ping SCRIPT_FILENAME=/fpm-ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -q pong"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    image: laravel-api-nginx:development
+    init: true
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    volumes:
+      - ./public:/var/www/html/public:ro
+    networks:
+      - backend
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/nginx-health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  postgres:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-laravel}
+      POSTGRES_USER: ${DB_USERNAME:-laravel}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-laravel}
+      POSTGRES_TEST_DB: ${TEST_DB_DATABASE:-laravel_testing}
+    ports:
+      - "${POSTGRES_PORT:-54320}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init-test-db.sh:/docker-entrypoint-initdb.d/10-test-db.sh:ro
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    ports:
+      - "${REDIS_PORT_FORWARD:-63790}:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  horizon:
+    <<: *app
+    command: ["php", "artisan", "horizon"]
+    stop_grace_period: 30s
+    healthcheck:
+      test: ["CMD", "php", "artisan", "horizon:status"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  scheduler:
+    <<: *app
+    command: ["php", "artisan", "schedule:work", "--verbose", "--no-interaction"]
+    healthcheck:
+      test: ["CMD-SHELL", "php artisan schedule:list >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  test:
+    build:
+      context: .
+      target: test
+      args:
+        APP_UID: ${APP_UID:-1000}
+        APP_GID: ${APP_GID:-1000}
+    image: laravel-api:test
+    environment:
+      <<: *app-environment
+      APP_ENV: testing
+      DB_DATABASE: ${TEST_DB_DATABASE:-laravel_testing}
+      CACHE_STORE: redis
+      COMPOSER_ROOT_VERSION: dev-main
+      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: array
+    volumes:
+      - .:/var/www/html
+      - composer-cache:/tmp/composer
+    networks:
+      - backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    profiles:
+      - test
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  composer-cache:
+  postgres-data:
+  redis-data:

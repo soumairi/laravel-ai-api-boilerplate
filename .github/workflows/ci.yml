@@ -1,0 +1,149 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17-bookworm
+        env:
+          POSTGRES_DB: laravel_testing
+          POSTGRES_USER: laravel
+          POSTGRES_PASSWORD: laravel
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U laravel -d laravel_testing"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      TEST_IMAGE: laravel-api:test
+      APP_ENV: testing
+      APP_KEY: base64:dGVzdC1vbmx5LWFwcGxpY2F0aW9uLWtleS0zMmJ5dGVzISE=
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: laravel_testing
+      DB_USERNAME: laravel
+      DB_PASSWORD: laravel
+      REDIS_CLIENT: phpredis
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: redis
+      SESSION_DRIVER: array
+      MAIL_MAILER: array
+      JWT_ALGO: RS256
+      JWT_PUBLIC_KEY: file://storage/keys/jwt-public.pem
+      JWT_PRIVATE_KEY: file://storage/keys/jwt-private.pem
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Validate Compose model
+        run: docker compose config --quiet
+
+      - name: Build PHP test image
+        run: docker build --target test --tag "$TEST_IMAGE" .
+
+      - name: Generate ephemeral JWT keys
+        run: |
+          mkdir -p storage/keys
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out storage/keys/jwt-private.pem
+          openssl pkey -in storage/keys/jwt-private.pem -pubout -out storage/keys/jwt-public.pem
+          chmod 600 storage/keys/jwt-private.pem
+
+      - name: Validate Composer metadata
+        run: docker run --rm "$TEST_IMAGE" composer validate --strict --no-interaction
+
+      - name: Check formatting
+        run: docker run --rm "$TEST_IMAGE" vendor/bin/pint --test
+
+      - name: Run static analysis
+        run: docker run --rm "$TEST_IMAGE" vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+
+      - name: Validate OpenAPI export
+        run: >-
+          docker run --rm --network host
+          -e APP_ENV -e APP_KEY
+          -e DB_CONNECTION -e DB_HOST -e DB_PORT -e DB_DATABASE -e DB_USERNAME -e DB_PASSWORD
+          "$TEST_IMAGE" sh -lc
+          'php artisan scramble:export --path=/tmp/openapi.json --no-interaction
+          && php -r "json_decode(file_get_contents(\"/tmp/openapi.json\"), true, 512, JSON_THROW_ON_ERROR);"'
+
+      - name: Validate migrations and seeders
+        run: >-
+          docker run --rm --network host
+          -e APP_ENV -e APP_KEY
+          -e DB_CONNECTION -e DB_HOST -e DB_PORT -e DB_DATABASE -e DB_USERNAME -e DB_PASSWORD
+          -e REDIS_CLIENT -e REDIS_HOST -e REDIS_PORT
+          "$TEST_IMAGE" php artisan migrate:fresh --seed --force
+
+      - name: Run tests with coverage
+        run: >-
+          docker run --rm --network host
+          -e APP_ENV -e APP_KEY
+          -e DB_CONNECTION -e DB_HOST -e DB_PORT -e DB_DATABASE -e DB_USERNAME -e DB_PASSWORD
+          -e REDIS_CLIENT -e REDIS_HOST -e REDIS_PORT
+          -e CACHE_STORE -e QUEUE_CONNECTION -e SESSION_DRIVER -e MAIL_MAILER
+          -e JWT_ALGO -e JWT_PUBLIC_KEY -e JWT_PRIVATE_KEY
+          -v "$PWD/storage/keys:/var/www/html/storage/keys:ro"
+          "$TEST_IMAGE" php artisan test --parallel --coverage --min=85
+
+      - name: Run project consistency checks
+        run: |
+          sh scripts/check-project.sh docs
+          sh scripts/check-project.sh readme
+          sh scripts/check-project.sh traces
+          sh scripts/check-project.sh rules
+          sh scripts/check-project.sh skills
+
+      - name: Remove ephemeral keys
+        if: always()
+        run: rm -rf storage/keys
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+      - run: composer audit --locked --no-interaction
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
