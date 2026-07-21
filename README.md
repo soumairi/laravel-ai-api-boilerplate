@@ -239,6 +239,12 @@ scripts/ai/context.sh governance
 
 Les copies synchronisées ne sont jamais modifiées directement. Voir [Workflow IA](docs/ai-agent-workflow.md).
 
+## Templates de prompts pour les agents IA
+
+Des templates français prêts à copier sont disponibles pour cadrer une fonctionnalité complète, un endpoint, une correction de bug, un refactoring, une migration PostgreSQL, des tests, une revue de sécurité ou la finalisation Git. Ils imposent le contexte métier, les Skills adaptés, la trace, les tests Pest, Scramble/OpenAPI, la quality gate et le travail sur une branche dédiée.
+
+[Consulter les templates de prompts IA](docs/ai-prompt-templates.md)
+
 ## Agent Skills
 
 `.agents/skills/` est la source canonique.
@@ -344,6 +350,7 @@ Ne versionnez jamais `.env`, clé privée, JWT, refresh token ou cookie. Ne logg
 - [Tests](docs/testing.md) et [Scramble](docs/openapi-and-scramble.md)
 - [Queues](docs/queues-and-jobs.md), [cache](docs/caching.md), [observabilité](docs/observability.md)
 - [Sécurité](docs/security.md) et [workflow IA](docs/ai-agent-workflow.md)
+- [Templates de prompts pour les agents IA](docs/ai-prompt-templates.md)
 - [Créer un projet](docs/create-project-from-boilerplate.md), [module](docs/create-module.md), [endpoint](docs/create-api-endpoint.md)
 - [Déploiement](docs/deployment.md), [dépannage](docs/troubleshooting.md), [Definition of Done](docs/definition-of-done.md)
 - [Conventions](docs/conventions/php.md) et [décisions](docs/decisions/README.md)

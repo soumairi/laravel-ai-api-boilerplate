@@ -10,5 +10,5 @@ Cette documentation complète le [README racine](../README.md). Le code, `compos
 - Sécuriser : [authentication.md](authentication.md), [authorization.md](authorization.md), [security.md](security.md).
 - Exploiter : [queues-and-jobs.md](queues-and-jobs.md), [caching.md](caching.md), [observability.md](observability.md), [deployment.md](deployment.md).
 - Valider : [testing.md](testing.md), [openapi-and-scramble.md](openapi-and-scramble.md), [definition-of-done.md](definition-of-done.md).
-- Agents IA : [ai-agent-workflow.md](ai-agent-workflow.md).
+- Agents IA : [ai-agent-workflow.md](ai-agent-workflow.md) et [templates de prompts](ai-prompt-templates.md).
 - Référence : [conventions](conventions/php.md), [décisions](decisions/README.md), [dépannage](troubleshooting.md).
