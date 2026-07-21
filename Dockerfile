@@ -1,4 +1,4 @@
-FROM php:8.4-fpm-bookworm AS php-base
+FROM php:8.5-fpm-bookworm AS php-base
 
 ARG APP_UID=1000
 ARG APP_GID=1000
