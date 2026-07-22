@@ -4,51 +4,38 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
-use App\Domain\Identity\UserStatus;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\Validator;
 
-final class AdminRequest extends FormRequest
+abstract class AdminRequest extends FormRequest
 {
+    /** @return array<string, mixed> */
+    abstract public function rules(): array;
+
     public function authorize(): bool
     {
         return true;
     }
 
-    /** @return array<string, mixed> */
-    public function rules(): array
+    public function withValidator(Validator $validator): void
     {
-        $routeName = (string) $this->route()->getName();
-        $entity = $this->route('user') ?? $this->route('role') ?? $this->route('permission');
-        $table = str_starts_with($routeName, 'users.') ? 'users'
-            : (str_starts_with($routeName, 'roles.') ? 'roles' : 'permissions');
+        $allowed = collect(array_keys($this->rules()))
+            ->map(static fn (string $key): string => str($key)->before('.')->toString())
+            ->push(...$this->additionalAllowedKeys())
+            ->unique();
 
-        if ($table === 'users') {
-            if ($routeName === 'users.status') {
-                return ['status' => ['required', Rule::enum(UserStatus::class)]];
+        $validator->after(function (Validator $validator) use ($allowed): void {
+            foreach (array_keys($this->all()) as $key) {
+                if (! $allowed->contains($key)) {
+                    $validator->errors()->add($key, 'This field is not allowed.');
+                }
             }
-            if ($routeName === 'users.roles') {
-                return [
-                    'roles' => ['required', 'array', 'max:20'],
-                    'roles.*' => ['string', 'exists:roles,name'],
-                ];
-            }
+        });
+    }
 
-            return [
-                'name' => [$this->isMethod('POST') ? 'required' : 'sometimes', 'string', 'max:120'],
-                'email' => [$this->isMethod('POST') ? 'required' : 'sometimes', 'email:rfc', 'max:254', Rule::unique('users')->ignore($entity)],
-                'password' => [$this->isMethod('POST') ? 'required' : 'sometimes', 'confirmed', Password::min(12)->letters()->mixedCase()->numbers()->symbols()],
-                'status' => [$this->isMethod('POST') ? 'sometimes' : 'prohibited', Rule::enum(UserStatus::class)],
-                'roles' => [$this->isMethod('POST') ? 'sometimes' : 'prohibited', 'array', 'max:20'],
-                'roles.*' => ['string', 'exists:roles,name'],
-            ];
-        }
-
-        return [
-            'name' => [$this->isMethod('POST') ? 'required' : 'sometimes', 'string', 'max:100', Rule::unique($table)->ignore($entity)],
-            'permissions' => [$routeName === 'roles.permissions' ? 'required' : 'sometimes', 'array', 'max:100'],
-            'permissions.*' => ['string', 'exists:permissions,name'],
-        ];
+    /** @return list<string> */
+    protected function additionalAllowedKeys(): array
+    {
+        return [];
     }
 }

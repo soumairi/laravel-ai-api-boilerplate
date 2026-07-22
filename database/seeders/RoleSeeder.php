@@ -19,11 +19,10 @@ final class RoleSeeder extends Seeder
             ->where('guard_name', 'api')
             ->whereIn('name', config('rbac.permissions'))
             ->get();
+        $adminPermissions = $permissions->whereIn('name', (array) config('rbac.admin_permissions'));
 
         Role::findOrCreate('super-admin', 'api')->syncPermissions($permissions);
-        Role::findOrCreate('admin', 'api')->syncPermissions($permissions->reject(
-            static fn (Permission $permission): bool => $permission->name === 'roles.delete',
-        ));
+        Role::findOrCreate('admin', 'api')->syncPermissions($adminPermissions);
         Role::findOrCreate((string) config('rbac.default_role'), 'api')->syncPermissions([]);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();

@@ -69,6 +69,12 @@ final class RefreshTokenService
                         return true;
                     }
 
+                    /** @var User $user */
+                    $user = $session->user()->lockForUpdate()->firstOrFail();
+                    if (! $user->status->mayAuthenticate()) {
+                        throw new InvalidRefreshToken;
+                    }
+
                     $next = TokenIdentifier::generate();
                     $session->forceFill([
                         'last_used_at' => now(),
@@ -86,7 +92,7 @@ final class RefreshTokenService
                     ]);
 
                     return new RotatedRefreshToken(
-                        $replacement->user()->firstOrFail(),
+                        $user,
                         new RefreshToken($next, $replacement->expires_at->toIso8601String()),
                     );
                 }, 3);

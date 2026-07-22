@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Infrastructure\OpenApi\BearerSecurityStrategy;
+use App\Infrastructure\OpenApi\ProblemDetailsResponseExtension;
 use App\Infrastructure\OpenApi\ProductionDocsAccess;
 use App\Infrastructure\OpenApi\QueryBuilderParameterExtension;
 
@@ -148,6 +149,7 @@ return [
 
     'extensions' => [
         QueryBuilderParameterExtension::class,
+        ProblemDetailsResponseExtension::class,
     ],
 
     /*

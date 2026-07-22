@@ -43,7 +43,7 @@ jobs:
     env:
       TEST_IMAGE: laravel-api:test
       APP_ENV: testing
-      APP_KEY: base64:dGVzdC1vbmx5LWFwcGxpY2F0aW9uLWtleS0zMmJ5dGVzISE=
+      APP_KEY: base64:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
       DB_CONNECTION: pgsql
       DB_HOST: 127.0.0.1
       DB_PORT: 5432
@@ -57,24 +57,32 @@ jobs:
       QUEUE_CONNECTION: redis
       SESSION_DRIVER: array
       MAIL_MAILER: array
-      JWT_ALGO: RS256
-      JWT_PUBLIC_KEY: file://storage/keys/jwt-public.pem
-      JWT_PRIVATE_KEY: file://storage/keys/jwt-private.pem
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Validate Compose model
-        run: docker compose config --quiet
+        run: |
+          docker compose config --quiet
+          APP_KEY='base64:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=' \
+          APP_URL='https://api.example.test' \
+          DB_HOST='postgres.example.test' DB_DATABASE='app' DB_USERNAME='app' DB_PASSWORD='placeholder' \
+          REDIS_HOST='redis.example.test' REDIS_PASSWORD='placeholder' \
+          JWT_ISSUER='https://api.example.test' JWT_AUDIENCE='app' \
+          MAIL_HOST='smtp.example.test' \
+          JWT_PUBLIC_KEY_FILE='/tmp/jwt-public.pem' JWT_PRIVATE_KEY_FILE='/tmp/jwt-private.pem' \
+          docker compose -f compose.production.yaml config --quiet
 
       - name: Build PHP test image
         run: docker build --target test --tag "$TEST_IMAGE" .
 
-      - name: Generate ephemeral JWT keys
+      - name: Build and inspect production image
         run: |
-          mkdir -p storage/keys
-          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out storage/keys/jwt-private.pem
-          openssl pkey -in storage/keys/jwt-private.pem -pubout -out storage/keys/jwt-public.pem
-          chmod 600 storage/keys/jwt-private.pem
+          docker build --target production --tag laravel-api:production .
+          docker run --rm --entrypoint sh laravel-api:production -lc \
+            'test ! -e .env && test ! -e storage/keys/jwt-private.pem && test ! -e storage/keys/jwt-public.pem'
+          docker build --file docker/nginx/Dockerfile --target production --tag laravel-api-nginx:production .
+          docker run --rm --entrypoint sh laravel-api-nginx:production -lc \
+            'test -f /var/www/html/public/index.php'
 
       - name: Validate Composer metadata
         run: docker run --rm "$TEST_IMAGE" composer validate --strict --no-interaction
@@ -92,7 +100,8 @@ jobs:
           -e DB_CONNECTION -e DB_HOST -e DB_PORT -e DB_DATABASE -e DB_USERNAME -e DB_PASSWORD
           "$TEST_IMAGE" sh -lc
           'php artisan scramble:export --path=/tmp/openapi.json --no-interaction
-          && php -r "json_decode(file_get_contents(\"/tmp/openapi.json\"), true, 512, JSON_THROW_ON_ERROR);"'
+          && php -r "json_decode(file_get_contents(\"/tmp/openapi.json\"), true, 512, JSON_THROW_ON_ERROR);"
+          && cmp /tmp/openapi.json docs/openapi/openapi.json'
 
       - name: Validate migrations and seeders
         run: >-
@@ -100,7 +109,10 @@ jobs:
           -e APP_ENV -e APP_KEY
           -e DB_CONNECTION -e DB_HOST -e DB_PORT -e DB_DATABASE -e DB_USERNAME -e DB_PASSWORD
           -e REDIS_CLIENT -e REDIS_HOST -e REDIS_PORT
-          "$TEST_IMAGE" php artisan migrate:fresh --seed --force
+          "$TEST_IMAGE" sh -lc
+          'php artisan migrate:fresh --seed --force
+          && php artisan migrate:rollback --force
+          && php artisan migrate:fresh --seed --force'
 
       - name: Run tests with coverage
         run: >-
@@ -109,8 +121,6 @@ jobs:
           -e DB_CONNECTION -e DB_HOST -e DB_PORT -e DB_DATABASE -e DB_USERNAME -e DB_PASSWORD
           -e REDIS_CLIENT -e REDIS_HOST -e REDIS_PORT
           -e CACHE_STORE -e QUEUE_CONNECTION -e SESSION_DRIVER -e MAIL_MAILER
-          -e JWT_ALGO -e JWT_PUBLIC_KEY -e JWT_PRIVATE_KEY
-          -v "$PWD/storage/keys:/var/www/html/storage/keys:ro"
           "$TEST_IMAGE" php artisan test --parallel --coverage --min=85
 
       - name: Run project consistency checks
@@ -121,16 +131,12 @@ jobs:
           sh scripts/check-project.sh rules
           sh scripts/check-project.sh skills
 
-      - name: Remove ephemeral keys
-        if: always()
-        run: rm -rf storage/keys
-
   dependency-audit:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
-      - uses: shivammathur/setup-php@v2
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: '8.4'
           tools: composer:v2
@@ -141,9 +147,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

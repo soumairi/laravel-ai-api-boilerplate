@@ -19,6 +19,7 @@ build: ## Build development application images
 
 build-production: ## Build the production runtime image
 	docker build --target production -t laravel-api:production .
+	docker build --file docker/nginx/Dockerfile --target production -t laravel-api-nginx:production .
 
 up: ## Start the development stack
 	$(COMPOSE) up -d --build
@@ -144,7 +145,8 @@ ai-task-complete: ## Mark the active AI task validated
 
 ai-approve: ## Record an explicitly granted operation approval
 	@test -n "$(OPERATION)" || { echo "OPERATION=commit|push|pr is required."; exit 1; }
-	AI_HUMAN_APPROVAL=yes ./scripts/ai/approval.sh record "$(OPERATION)" "$(or $(APPROVER),human)"
+	AI_HUMAN_APPROVAL=yes AI_APPROVAL_REMOTE="$(or $(REMOTE),origin)" AI_APPROVAL_BASE="$(or $(BASE_BRANCH),develop)" \
+		./scripts/ai/approval.sh record "$(OPERATION)" "$(or $(APPROVER),human)"
 
 ai-context: ## Print focused context for TASK
 	@test -n "$(TASK)" || { echo "TASK is required."; exit 1; }

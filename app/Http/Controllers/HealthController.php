@@ -30,6 +30,7 @@ final class HealthController extends Controller
                 'title' => 'Service Unavailable',
                 'status' => 503,
                 'detail' => 'A required dependency is unavailable.',
+                'instance' => request()->path(),
                 'request_id' => request()->attributes->get('request_id'),
             ], 503, ['Content-Type' => 'application/problem+json']);
         }

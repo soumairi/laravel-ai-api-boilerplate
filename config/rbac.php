@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 return [
     'default_role' => 'user',
+    'system_roles' => ['super-admin', 'admin', 'user'],
+    'protected_roles' => ['super-admin', 'admin'],
     'admin' => [
         'name' => env('ADMIN_NAME', 'Administrator'),
         'email' => env('ADMIN_EMAIL'),
@@ -11,11 +13,16 @@ return [
     ],
     'permissions' => [
         'users.viewAny', 'users.view', 'users.create', 'users.update', 'users.delete',
-        'users.restore', 'users.changeStatus', 'users.assignRoles',
+        'users.changeStatus', 'users.assignRoles',
         'roles.viewAny', 'roles.view', 'roles.create', 'roles.update', 'roles.delete',
         'roles.assignPermissions',
-        'permissions.viewAny', 'permissions.assign',
-        'audit.viewAny', 'health.view',
+        'permissions.viewAny',
+        'api.documentation.view',
+        'horizon.view',
+    ],
+    'admin_permissions' => [
+        'users.viewAny', 'users.view', 'users.create', 'users.update', 'users.delete',
+        'users.changeStatus', 'users.assignRoles',
         'api.documentation.view',
         'horizon.view',
     ],

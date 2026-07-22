@@ -6,6 +6,7 @@ return [
     'registration_enabled' => (bool) env('REGISTRATION_ENABLED', true),
     'require_email_verification' => (bool) env('REQUIRE_EMAIL_VERIFICATION', true),
     'refresh_ttl' => (int) env('REFRESH_TOKEN_TTL', 43200),
+    'refresh_session_retention_days' => (int) env('REFRESH_SESSION_RETENTION_DAYS', 30),
     'max_request_bytes' => (int) env('API_MAX_REQUEST_BYTES', 1_048_576),
     'cors_origins' => array_filter(explode(',', (string) env('CORS_ALLOWED_ORIGINS', ''))),
     'password_reset_url' => env('FRONTEND_PASSWORD_RESET_URL', 'http://localhost/reset-password'),

@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\MassPrunable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -21,7 +23,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class RefreshSession extends Model
 {
-    use HasFactory, HasUlids;
+    use HasFactory, HasUlids, MassPrunable;
 
     /** @var list<string> */
     protected $fillable = [
@@ -36,6 +38,18 @@ class RefreshSession extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** @return Builder<RefreshSession> */
+    public function prunable(): Builder
+    {
+        $cutoff = now()->subDays((int) config('api.refresh_session_retention_days'));
+
+        return self::query()->where(
+            static fn (Builder $query): Builder => $query
+                ->where('expires_at', '<', $cutoff)
+                ->orWhere('revoked_at', '<', $cutoff),
+        );
     }
 
     /** @return array<string, string> */
