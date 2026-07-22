@@ -22,6 +22,8 @@ abstract class TestCase extends BaseTestCase
             'jwt.keys.private' => 'file://'.$this->jwtKeyDirectory().'/private.pem',
             'jwt.keys.passphrase' => null,
         ]);
+        $testAddress = implode(':', str_split(bin2hex(random_bytes(8)), 4));
+        $this->withServerVariables(['REMOTE_ADDR' => "2001:db8::$testAddress"]);
     }
 
     protected function jwtKeyDirectory(): string

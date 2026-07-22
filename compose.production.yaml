@@ -1,0 +1,125 @@
+name: laravel-api-production
+
+x-runtime: &runtime
+  image: ${APP_IMAGE:-laravel-api:production}
+  build:
+    context: .
+    target: production
+  user: "1000:1000"
+  environment: &runtime-environment
+    APP_ENV: production
+    APP_DEBUG: "false"
+    APP_KEY: ${APP_KEY:?APP_KEY is required}
+    APP_URL: ${APP_URL:?APP_URL is required}
+    LOG_CHANNEL: json
+    LOG_LEVEL: ${LOG_LEVEL:-warning}
+    DB_CONNECTION: pgsql
+    DB_HOST: ${DB_HOST:?DB_HOST is required}
+    DB_PORT: ${DB_PORT:-5432}
+    DB_DATABASE: ${DB_DATABASE:?DB_DATABASE is required}
+    DB_USERNAME: ${DB_USERNAME:?DB_USERNAME is required}
+    DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    REDIS_CLIENT: phpredis
+    REDIS_HOST: ${REDIS_HOST:?REDIS_HOST is required}
+    REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    REDIS_PORT: ${REDIS_PORT:-6379}
+    CACHE_STORE: redis
+    QUEUE_CONNECTION: redis
+    SESSION_DRIVER: redis
+    JWT_ALGO: RS256
+    JWT_ISSUER: ${JWT_ISSUER:?JWT_ISSUER is required}
+    JWT_AUDIENCE: ${JWT_AUDIENCE:?JWT_AUDIENCE is required}
+    JWT_PUBLIC_KEY: file:///run/secrets/jwt_public_key
+    JWT_PRIVATE_KEY: file:///run/secrets/jwt_private_key
+    JWT_PASSPHRASE: ${JWT_PASSPHRASE:-}
+    MAIL_MAILER: ${MAIL_MAILER:-smtp}
+    MAIL_HOST: ${MAIL_HOST:?MAIL_HOST is required}
+    MAIL_PORT: ${MAIL_PORT:-587}
+  secrets:
+    - jwt_public_key
+    - jwt_private_key
+  volumes:
+    - app-storage:/var/www/html/storage
+  tmpfs:
+    - /tmp:uid=1000,gid=1000,mode=1770
+    - /var/www/html/bootstrap/cache:uid=1000,gid=1000,mode=0770
+  read_only: true
+  init: true
+  restart: unless-stopped
+  networks:
+    - backend
+
+services:
+  app:
+    <<: *runtime
+    healthcheck:
+      test: ["CMD-SHELL", "SCRIPT_NAME=/fpm-ping SCRIPT_FILENAME=/fpm-ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -q pong"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  nginx:
+    image: ${NGINX_IMAGE:-laravel-api-nginx:production}
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+      target: production
+    read_only: true
+    init: true
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    tmpfs:
+      - /var/cache/nginx:uid=101,gid=101,mode=0750
+      - /var/run/nginx:uid=101,gid=101,mode=0750
+      - /tmp:uid=101,gid=101,mode=1770
+    networks:
+      - backend
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/nginx-health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  horizon:
+    <<: *runtime
+    command: ["php", "artisan", "horizon"]
+    stop_grace_period: 30s
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          commands="$$(for command in /proc/[0-9]*/cmdline; do tr '\000' ' ' < "$$command"; printf '\n'; done)";
+          printf '%s' "$$commands" | grep -q 'artisan horizon:supervisor'
+          && printf '%s' "$$commands" | grep -q 'artisan horizon:work'
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  scheduler:
+    <<: *runtime
+    command: ["php", "artisan", "schedule:work", "--verbose", "--no-interaction"]
+    healthcheck:
+      test: ["CMD-SHELL", "php artisan schedule:list >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  app-storage:
+
+secrets:
+  jwt_public_key:
+    file: ${JWT_PUBLIC_KEY_FILE:?JWT_PUBLIC_KEY_FILE is required}
+  jwt_private_key:
+    file: ${JWT_PRIVATE_KEY_FILE:?JWT_PRIVATE_KEY_FILE is required}

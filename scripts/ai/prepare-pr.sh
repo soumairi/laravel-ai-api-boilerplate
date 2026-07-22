@@ -12,7 +12,7 @@ git -C "$AI_DIR" rev-parse --verify HEAD >/dev/null 2>&1 || die 'cannot prepare 
 [[ -z "$(git -C "$AI_DIR" status --porcelain)" ]] || die 'worktree must be clean before PR preparation'
 
 "$AI_DIR/scripts/ai/trace-check.sh"
-"$AI_DIR/scripts/ai/approval.sh" check pr
+AI_APPROVAL_REMOTE=origin AI_APPROVAL_BASE="$base" "$AI_DIR/scripts/ai/approval.sh" check pr
 "$AI_DIR/scripts/ai/security-check.sh" worktree
 "$AI_DIR/scripts/ai/validate.sh" --delivery
 trace="$(active_trace_id)"

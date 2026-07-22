@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Policies;
 
+use App\Application\Administration\PrivilegeGuard;
 use App\Models\User;
 
 final class UserPolicy
 {
+    public function __construct(private readonly PrivilegeGuard $privileges) {}
+
     public function viewAny(User $actor): bool
     {
         return $actor->can('users.viewAny');
@@ -25,27 +28,21 @@ final class UserPolicy
 
     public function update(User $actor, User $subject): bool
     {
-        return $actor->can('users.update');
+        return $actor->can('users.update') && $this->privileges->canManageUser($actor, $subject);
     }
 
     public function delete(User $actor, User $subject): bool
     {
-        if (! $actor->can('users.delete') || $actor->is($subject)) {
-            return false;
-        }
-
-        $superAdmins = User::query()->whereHas('roles', fn ($query) => $query->where('name', 'super-admin'))->count();
-
-        return ! ($subject->hasRole('super-admin') && $superAdmins <= 1);
+        return $actor->can('users.delete') && $this->privileges->canManageUser($actor, $subject);
     }
 
     public function changeStatus(User $actor, User $subject): bool
     {
-        return $actor->can('users.changeStatus') && ! $actor->is($subject);
+        return $actor->can('users.changeStatus') && $this->privileges->canManageUser($actor, $subject);
     }
 
     public function assignRoles(User $actor, User $subject): bool
     {
-        return $actor->can('users.assignRoles') && ! $actor->is($subject);
+        return $actor->can('users.assignRoles') && $this->privileges->canManageUser($actor, $subject);
     }
 }

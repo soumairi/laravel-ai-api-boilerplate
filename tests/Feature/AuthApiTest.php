@@ -94,6 +94,17 @@ it('returns validation failures as problem details', function (): void {
         ->assertJsonStructure(['errors' => ['email', 'password']]);
 });
 
+it('rejects unknown authentication fields', function (): void {
+    $response = $this->postJson('/api/v1/auth/login', [
+        'email' => 'known@example.test',
+        'password' => 'password',
+        'is_admin' => true,
+    ]);
+
+    $this->assertProblem($response, 422)
+        ->assertJsonStructure(['errors' => ['is_admin']]);
+});
+
 it('hides registration when it is disabled', function (): void {
     config(['api.registration_enabled' => false]);
 
@@ -183,6 +194,23 @@ it('verifies an email through a valid signed URL', function (): void {
     $this->assertApiSuccess($this->getJson($url));
     expect($user->refresh()->hasVerifiedEmail())->toBeTrue()
         ->and($user->status)->toBe(UserStatus::Active);
+});
+
+it('does not reactivate a suspended account when its email is verified', function (): void {
+    $user = User::factory()->create([
+        'status' => UserStatus::Suspended,
+        'email_verified_at' => null,
+    ]);
+    $url = URL::temporarySignedRoute(
+        'verification.verify',
+        now()->addMinutes(10),
+        ['id' => $user->id, 'hash' => sha1($user->getEmailForVerification())],
+    );
+
+    $this->assertApiSuccess($this->getJson($url));
+
+    expect($user->refresh()->hasVerifiedEmail())->toBeTrue()
+        ->and($user->status)->toBe(UserStatus::Suspended);
 });
 
 it('resets a password and revokes active sessions', function (): void {

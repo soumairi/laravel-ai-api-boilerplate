@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Application\Auth\AccessTokenValidator;
 use App\Models\User;
 use App\Policies\UserPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -36,7 +37,11 @@ class AppServiceProvider extends ServiceProvider
         Gate::before(static fn (User $user, string $ability): ?bool => $user->hasRole('super-admin') && str_contains($ability, '.')
             ? true
             : null);
-        Horizon::auth(static fn (Request $request): bool => $request->user()?->can('horizon.view') === true);
+        Horizon::auth(static function (Request $request): bool {
+            $user = app(AccessTokenValidator::class)->authenticatedUser();
+
+            return $user?->can('horizon.view') === true;
+        });
 
         RateLimiter::for('auth', static fn (Request $request) => Limit::perMinute(
             (int) config('api.rate_limits.auth_per_minute'),

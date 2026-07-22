@@ -78,6 +78,14 @@ check_skills()
         || fail 'no canonical SKILL.md files found'
 }
 
+check_workflows()
+{
+    [ -d .github/workflows ] || return
+    if grep -ERn 'uses:[[:space:]]+[^[:space:]]+@(v[0-9]+|main|master|latest)([[:space:]]|$)' .github/workflows; then
+        fail 'GitHub Actions must be pinned to immutable commit SHAs'
+    fi
+}
+
 case "$check" in
     docs) check_docs ;;
     readme) check_readme ;;
@@ -85,12 +93,14 @@ case "$check" in
     traces) check_traces ;;
     rules) check_rules ;;
     skills) check_skills ;;
+    workflows) check_workflows ;;
     all)
         check_docs
         check_readme
         check_traces
         check_rules
         check_skills
+        check_workflows
         ;;
     *) fail "unknown check: $check" ;;
 esac

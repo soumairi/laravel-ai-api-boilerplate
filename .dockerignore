@@ -10,5 +10,10 @@ node_modules
 storage/framework/cache/data/*
 storage/framework/sessions/*
 storage/framework/views/*
+storage/keys
 storage/logs/*
 vendor
+**/*.key
+**/*.pem
+**/*.p12
+**/*.pfx

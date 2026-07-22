@@ -32,13 +32,13 @@ Les versions sont celles verrouillées dans `composer.lock` ou déclarées dans 
 | Authentification | jwt-auth 2.9.2, RS256 |
 | Autorisation | Spatie Permission 8.3.0 |
 | Requêtes | Spatie Query Builder 7.3.0 |
-| Audit / health | Activitylog 5.0.0 / Health 1.40.0 |
+| Audit / health | Activitylog 5.0.0 / endpoints live-ready internes |
 | Queues | Horizon 5.48.1 |
 | OpenAPI | Scramble 0.13.35 / Scalar |
 | Tests | Pest 4.7.5, Pest Laravel 4.1.0 |
 | Analyse | Larastan 3.10.0, PHPStan 2.2.5 |
 | Style | Pint 1.29.3 |
-| Outils locaux | Telescope 5.20.0, Boost 2.4.13 |
+| Outils locaux | Tinker 3.0.2, Boost 2.4.13 |
 | Courrier local | Mailpit 1.27 |
 
 ## Architecture
@@ -71,7 +71,7 @@ make up
 make init
 ```
 
-`make up` construit et démarre Nginx, PHP-FPM, PostgreSQL, Redis, Horizon, le scheduler et Mailpit. `make init` conserve les clés existantes, génère `APP_KEY` et une paire RSA si elles manquent, puis exécute migrations et seeders. `make composer-install` réinstalle les dépendances dans le conteneur.
+`make up` construit et démarre Nginx, PHP-FPM, PostgreSQL, Redis, Horizon, le scheduler et Mailpit. `make init` conserve les clés existantes, génère `APP_KEY` et une paire RSA si elles manquent, puis exécute migrations et seeders. `make composer-install` réinstalle les dépendances dans le conteneur. Pour la production, `compose.production.yaml` utilise des images immuables, non-root et en lecture seule, sans bind mount du dépôt.
 
 ```bash
 make ps
@@ -119,7 +119,7 @@ php artisan schedule:work --verbose --no-interaction
 - application : `APP_ENV`, `APP_DEBUG`, `APP_URL`, `APP_PORT`;
 - PostgreSQL : `DB_*`, `POSTGRES_PORT`, `TEST_DB_DATABASE`;
 - Redis : `REDIS_*`, `CACHE_STORE`, `QUEUE_CONNECTION`, `SESSION_DRIVER`;
-- JWT : `JWT_ALGO`, chemins des clés, `JWT_TTL`, `REFRESH_TOKEN_TTL`;
+- JWT : `JWT_ALGO`, chemins des clés, `JWT_TTL`, `REFRESH_TOKEN_TTL`, `REFRESH_SESSION_RETENTION_DAYS`;
 - authentification : `REGISTRATION_ENABLED`, `REQUIRE_EMAIL_VERIFICATION`;
 - sécurité : `CORS_ALLOWED_ORIGINS`, `TRUSTED_PROXIES`, `API_MAX_REQUEST_BYTES` et les variables `API_RATE_LIMIT_*` de `.env.example`;
 - administrateur initial : `ADMIN_NAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`;
@@ -157,7 +157,7 @@ Ne versionnez, ne loggez et ne placez jamais de token ou de clé dans une trace 
 
 `PermissionSeeder`, `RoleSeeder` et `AdminUserSeeder` sont idempotents et orchestrés par `DatabaseSeeder`. Ils créent `super-admin`, `admin` et `user`; l'administrateur initial est ignoré sans `ADMIN_EMAIL` et explicitement refusé si son email est configuré sans `ADMIN_PASSWORD`.
 
-Les permissions granulaires couvrent utilisateurs, rôles, permissions, audit, health, documentation API et Horizon. `api.documentation.view` et `horizon.view` restent distinctes.
+Les permissions granulaires correspondent aux endpoints réellement exposés pour utilisateurs, rôles, permissions, documentation API et Horizon. `api.documentation.view` et `horizon.view` restent distinctes; l'admin ne possède aucune permission de mutation RBAC.
 
 Les contrôles combinent Spatie Permission, Policies et `Gate::before`. Une permission ajoutée doit être déclarée dans `config/rbac.php`, appliquée, testée, documentée et tracée. Les routes d'administration sont `/api/v1/users`, `/api/v1/roles` et `/api/v1/permissions`. Voir [Autorisation](docs/authorization.md).
 
@@ -353,6 +353,7 @@ Ne versionnez jamais `.env`, clé privée, JWT, refresh token ou cookie. Ne logg
 - [Templates de prompts pour les agents IA](docs/ai-prompt-templates.md)
 - [Créer un projet](docs/create-project-from-boilerplate.md), [module](docs/create-module.md), [endpoint](docs/create-api-endpoint.md)
 - [Déploiement](docs/deployment.md), [dépannage](docs/troubleshooting.md), [Definition of Done](docs/definition-of-done.md)
+- [Remédiation de l'audit de préparation](docs/audits/boilerplate-readiness-remediation.md)
 - [Conventions](docs/conventions/php.md) et [décisions](docs/decisions/README.md)
 
 ## Contribution

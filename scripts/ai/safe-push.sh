@@ -17,7 +17,7 @@ case "$url" in
 esac
 
 "$AI_DIR/scripts/ai/trace-check.sh"
-"$AI_DIR/scripts/ai/approval.sh" check push
+AI_APPROVAL_REMOTE="$remote" "$AI_DIR/scripts/ai/approval.sh" check push
 "$AI_DIR/scripts/ai/security-check.sh" worktree
 "$AI_DIR/scripts/ai/validate.sh" --delivery
 git -C "$AI_DIR" push --set-upstream "$remote" "HEAD:refs/heads/$branch"

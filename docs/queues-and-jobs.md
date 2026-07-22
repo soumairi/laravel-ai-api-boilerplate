@@ -1,6 +1,6 @@
 # Queues et jobs
 
-`QUEUE_CONNECTION=redis` est la valeur locale Compose. Le service `horizon` exécute `php artisan horizon` avec un arrêt gracieux de 30 secondes. Les notifications d'e-mail sont queueables; tout traitement long futur doit devenir un Job idempotent.
+`QUEUE_CONNECTION=redis` est la valeur locale Compose. Le service `horizon` exécute `php artisan horizon` avec un arrêt gracieux de 30 secondes et un healthcheck sur les processus supervisor/worker. Les notifications d'e-mail sont queueables après commit avec 3 essais, un timeout de 30 secondes et un backoff de 10/60/300 secondes; tout traitement long futur doit devenir un Job idempotent.
 
 Le scheduler exécute `schedule:work`. Il lance `horizon:snapshot` toutes les cinq minutes et `model:prune` chaque jour, sans chevauchement.
 

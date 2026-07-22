@@ -6,6 +6,7 @@ use App\Console\Commands\BoilerplateInitCommand;
 use App\Domain\Auth\InvalidRefreshToken;
 use App\Domain\Auth\RefreshTokenBusy;
 use App\Domain\Auth\RefreshTokenReplay;
+use App\Domain\Identity\LastSuperAdminViolation;
 use App\Http\Middleware\ApiSecurity;
 use App\Http\Middleware\ValidateAccessToken;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -59,7 +60,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 $exception instanceof ModelNotFoundException => 404,
                 $exception instanceof InvalidRefreshToken, $exception instanceof RefreshTokenReplay => 401,
                 $exception instanceof JWTException => 401,
-                $exception instanceof RefreshTokenBusy => 409,
+                $exception instanceof RefreshTokenBusy, $exception instanceof LastSuperAdminViolation => 409,
                 $exception instanceof HttpExceptionInterface => $exception->getStatusCode(),
                 default => 500,
             };

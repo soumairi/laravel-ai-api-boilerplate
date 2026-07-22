@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Notifications;
 
+use App\Infrastructure\Notifications\Concerns\ReliableQueue;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 
 final class QueuedResetPassword extends ResetPassword implements ShouldQueue
 {
+    use ReliableQueue;
+
     public string $queue = 'notifications';
 
     public function toMail($notifiable): MailMessage
